@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Test</title>
+    <style>
+        /* Pengaturan umum */
+        body {
+            background-color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* Bypass link di atas */
+        #bypassContainer {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+        }
+        #bypassBtn {
+            color: #333;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        /* UI Utama */
+        #mainUI {
+            text-align: center;
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.2em;
+        }
+        input[type="number"] {
+            padding: 10px;
+            font-size: 1.5em;
+            width: 100px;
+            text-align: center;
+            margin-top: 10px;
+        }
+        #message {
+            color: red;
+            font-weight: bold;
+            margin-top: 15px;
+            height: 20px;
+        }
+
+        /* Layar Putih (Fade in 3 detik) */
+        #whiteFade {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: white;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
+        }
+        #whiteFade.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* Kontainer Video Full Screen */
+        #videoContainer {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: black; /* Latar belakang hitam untuk video */
+            z-index: 20;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Video seperti GIF (tanpa kontrol) */
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Menjaga rasio video agar tidak terpotong */
+        }
+
+        /* Layar Congratulations */
+        #congratsScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: white;
+            z-index: 30;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        #congratsScreen h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        #okBtn {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            cursor: pointer;
+            background-color: #eee;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Tombol Bypass -->
+    <div id="bypassContainer">
+        <span id="bypassBtn">Bypass</span>
+    </div>
+
+    <!-- UI Utama -->
+    <div id="mainUI">
+        <h1>Sound Test</h1>
+        <p>Choose a number (1 - 100) and press <b>Space</b></p>
+        <input type="number" id="numberInput" min="1" max="100">
+        <div id="message"></div>
+    </div>
+
+    <!-- Efek Transisi Putih -->
+    <div id="whiteFade"></div>
+
+    <!-- Video Fullscreen -->
+    <div id="videoContainer">
+        <!-- controls dihilangkan agar tampak seperti GIF -->
+        <video id="vidPlayer" playsinline></video>
+    </div>
+
+    <!-- Layar Congratulations -->
+    <div id="congratsScreen">
+        <h2>Congratulations You Won I Think So Much Better</h2>
+        <button id="okBtn">ok</button>
+    </div>
+
+    <script>
+        // Mengambil elemen-elemen dari HTML
+        const numberInput = document.getElementById('numberInput');
+        const message = document.getElementById('message');
+        const whiteFade = document.getElementById('whiteFade');
+        const videoContainer = document.getElementById('videoContainer');
+        const vidPlayer = document.getElementById('vidPlayer');
+        const bypassBtn = document.getElementById('bypassBtn');
+        const congratsScreen = document.getElementById('congratsScreen');
+        const okBtn = document.getElementById('okBtn');
+
+        // URL Video
+        const videos = {
+            1: "https://files.catbox.moe/1mup90.mp4",
+            2: "https://files.catbox.moe/kjdkm5.mp4",
+            3: "https://files.catbox.moe/x5nsft.mp4"
+        };
+        const bypassVideoUrl = "https://files.catbox.moe/wctedv.mp4";
+        const finalVideoUrl = "https://files.catbox.moe/uqf8y5.mp4";
+
+        let isPlaying = false; // Mencegah spam klik/tombol
+
+        // Event listener saat tombol ditekan
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.key === ' ') {
+                if (isPlaying) return; // Abaikan jika animasi/video sedang jalan
+                
+                const val = parseInt(numberInput.value);
+
+                // Cek kondisi input
+                if (val >= 4 && val <= 100) {
+                    message.textContent = "incorrect";
+                } else if (val === 1 || val === 2 || val === 3) {
+                    message.textContent = "";
+                    startSequence(videos[val], "normal");
+                } else {
+                    message.textContent = "Please enter a valid number (1-100)";
+                }
+            }
+        });
+
+        // Urutan animasi: Fade putih -> Tunggu 3 detik -> Mainkan Video
+        function startSequence(url, mode) {
+            isPlaying = true;
+            numberInput.blur(); // Hilangkan fokus agar spasi tidak mengetik di input
+            whiteFade.classList.add('active');
+
+            setTimeout(() => {
+                whiteFade.classList.remove('active');
+                playFullscreenVideo(url, mode);
+            }, 3000); // 3000ms = 3 detik
+        }
+
+        // Fungsi memutar video
+        function playFullscreenVideo(url, mode) {
+            isPlaying = true;
+            videoContainer.style.display = 'flex';
+            vidPlayer.src = url;
+            vidPlayer.play();
+
+            vidPlayer.onended = () => {
+                videoContainer.style.display = 'none';
+                vidPlayer.src = ""; // Clear memori
+                
+                if (mode === "normal") {
+                    isPlaying = false; // Kembali ke normal
+                } else if (mode === "bypass") {
+                    congratsScreen.style.display = 'flex';
+                } else if (mode === "final") {
+                    closeWebsite();
+                }
+            };
+        }
+
+        // Event listener untuk teks Bypass
+        bypassBtn.addEventListener('click', () => {
+            if (isPlaying) return;
+            // Langsung memutar video pertama bypass tanpa jeda 3 detik
+            playFullscreenVideo(bypassVideoUrl, "bypass");
+        });
+
+        // Event listener untuk tombol "ok"
+        okBtn.addEventListener('click', () => {
+            congratsScreen.style.display = 'none';
+            playFullscreenVideo(finalVideoUrl, "final");
+        });
+
+        // Fungsi menutup website setelah video terakhir
+        function closeWebsite() {
+            // Beberapa browser memblokir window.close() jika bukan dibuka via script.
+            // Maka kita tambahkan tampilan kosong jika gagal ditutup.
+            document.body.innerHTML = "<h1 style='text-align:center; margin-top:20%; font-family:sans-serif;'>Sound test is closed.</h1>";
+            window.close();
+        }
+    </script>
+</body>
+</html>
